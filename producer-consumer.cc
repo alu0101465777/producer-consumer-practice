@@ -87,3 +87,26 @@ void writer() {
     std::lock_guard<std::mutex> cout_lock(cout_mutex);
     std::cout << "Writer completed after " << MAX_ITERATIONS << " iterations." << std::endl;
 }
+
+// Function to calculate statistics
+struct Statistics {
+    double mean;
+    double variance;
+    double std_dev;
+};
+
+Statistics calculate_statistics(const std::vector<int>& data) {
+    Statistics stats{0.0, 0.0, 0.0};
+    if (data.empty()) return stats;
+
+    stats.mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+    
+    for (int val : data) {
+        stats.variance += std::pow(val - stats.mean, 2);
+    }
+    stats.variance /= data.size();
+    stats.std_dev = std::sqrt(stats.variance);
+    
+    return stats;
+}
+
