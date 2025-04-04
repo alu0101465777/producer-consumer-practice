@@ -163,3 +163,71 @@ void reader(int reader_id, std::vector<int>& history, Processor process_func) {
     std::lock_guard<std::mutex> cout_lock(cout_mutex);
     std::cout << "Reader " << reader_id << " completed after " << MAX_ITERATIONS << " iterations." << std::endl;
 }
+
+int main() {
+    // Setup signal handlers
+    signal(SIGINT, handle_termination);
+    signal(SIGTERM, handle_termination);
+
+    // Initialize base vector
+    initialize_vector();
+
+    // Start threads
+    std::thread writer_thread(writer);
+    
+    // Reader 1: Mode of the last 3 values
+    std::thread reader1_thread([&]() {
+        reader(1, reader1_history, [](const auto& history, int value) {
+            if (history.size() >= 3) {
+                auto last_three = std::vector<int>(history.end() - 3, history.end());
+                auto modes = calculate_mode(last_three);
+                
+                std::lock_guard<std::mutex> cout_lock(cout_mutex);
+                std::cout << "Reader 1 (Mode): ";
+                for (int m : modes) std::cout << m << " ";
+                std::cout << std::endl;
+            }
+        });
+    });
+    
+    // Reader 2: Statistics of all values
+    std::thread reader2_thread([&]() {
+        reader(2, reader2_history, [](const auto& history, int value) {
+            if (!history.empty()) {
+                auto stats = calculate_statistics(history);
+                
+                std::lock_guard<std::mutex> cout_lock(cout_mutex);
+                std::cout << std::fixed << std::setprecision(4);
+                std::cout << "Reader 2 (Stats): Mean=" << stats.mean 
+                          << ", StdDev=" << stats.std_dev 
+                          << ", Variance=" << stats.variance << std::endl;
+            }
+        });
+    });
+    
+    // Reader 3: Cumulative sum
+    std::thread reader3_thread([&]() {
+        reader(3, reader3_history, [](const auto& history, int value) {
+            int sum = std::accumulate(history.begin(), history.end(), 0);
+            
+            std::lock_guard<std::mutex> cout_lock(cout_mutex);
+            std::cout << "Reader 3 (Sum): " << sum << " (Count: " << history.size() 
+                      << ", Current: " << value << ")" << std::endl;
+        });
+    });
+
+    // Wait for threads to finish
+    writer_thread.join();
+    reader1_thread.join();
+    reader2_thread.join();
+    reader3_thread.join();
+
+    // Final summary
+    std::cout << "\nFinal Summary:" << std::endl;
+    std::cout << "  - Reader 1 processed " << reader1_history.size() << " items" << std::endl;
+    std::cout << "  - Reader 2 processed " << reader2_history.size() << " items" << std::endl;
+    std::cout << "  - Reader 3 processed " << reader3_history.size() << " items" << std::endl;
+    std::cout << "  - Remaining in buffer: " << buffer.size() << std::endl;
+
+    return 0;
+}
