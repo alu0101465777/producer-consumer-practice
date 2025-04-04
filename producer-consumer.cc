@@ -55,3 +55,35 @@ void handle_termination(int signal) {
     buffer_not_full.notify_all();
     buffer_not_empty.notify_all();
 }
+
+// Improved writer function
+void writer() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(1, 10);
+
+    for (int i = 0; i < MAX_ITERATIONS && !termination_flag; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(WRITER_DELAY_MS));
+        
+        int value = dist(gen);
+        
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            buffer_not_full.wait(lock, [] { return buffer.size() < BUFFER_SIZE || termination_flag; });
+            
+            if (termination_flag) break;
+            
+            buffer.push(value);
+            
+            {
+                std::lock_guard<std::mutex> cout_lock(cout_mutex);
+                std::cout << "[Writer] Produced: " << value << " (Buffer size: " << buffer.size() << ")" << std::endl;
+            }
+        }
+        
+        buffer_not_empty.notify_one();
+    }
+    
+    std::lock_guard<std::mutex> cout_lock(cout_mutex);
+    std::cout << "Writer completed after " << MAX_ITERATIONS << " iterations." << std::endl;
+}
