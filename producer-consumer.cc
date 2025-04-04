@@ -47,3 +47,11 @@ void initialize_vector() {
     std::generate(vector_base.begin(), vector_base.end(), [&]() { return dist(gen); });
 }
 
+// Function to handle termination signals
+void handle_termination(int signal) {
+    std::lock_guard<std::mutex> cout_lock(cout_mutex);
+    std::cout << "\nTermination signal received. Exiting..." << std::endl;
+    termination_flag = true;
+    buffer_not_full.notify_all();
+    buffer_not_empty.notify_all();
+}
