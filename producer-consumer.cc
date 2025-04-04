@@ -110,3 +110,23 @@ Statistics calculate_statistics(const std::vector<int>& data) {
     return stats;
 }
 
+
+// Function to calculate mode
+std::vector<int> calculate_mode(const std::vector<int>& data, int top_n = 3) {
+    std::map<int, int> frequency_map;
+    for (int val : data) {
+        frequency_map[val]++;
+    }
+
+    std::vector<std::pair<int, int>> frequency_pairs(frequency_map.begin(), frequency_map.end());
+    std::sort(frequency_pairs.begin(), frequency_pairs.end(), 
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+
+    std::vector<int> modes;
+    for (size_t i = 0; i < std::min(static_cast<size_t>(top_n), frequency_pairs.size()); ++i) {
+        modes.push_back(frequency_pairs[i].first);
+    }
+
+    return modes;
+}
+
