@@ -130,3 +130,36 @@ std::vector<int> calculate_mode(const std::vector<int>& data, int top_n = 3) {
     return modes;
 }
 
+// Template for readers with processing policies
+template<typename Processor>
+void reader(int reader_id, std::vector<int>& history, Processor process_func) {
+    for (int i = 0; i < MAX_ITERATIONS && !termination_flag; ++i) {
+        int value;
+        
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            buffer_not_empty.wait(lock, [] { return !buffer.empty() || termination_flag; });
+            
+            if (termination_flag) break;
+            
+            value = buffer.front();
+            buffer.pop();
+            history.push_back(value);
+            
+            {
+                std::lock_guard<std::mutex> cout_lock(cout_mutex);
+                std::cout << "[Reader " << reader_id << "] Consumed: " << value << std::endl;
+            }
+        }
+        
+        buffer_not_full.notify_one();
+        
+        // Specific reader processing
+        process_func(history, value);
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(READER_DELAY_MS));
+    }
+    
+    std::lock_guard<std::mutex> cout_lock(cout_mutex);
+    std::cout << "Reader " << reader_id << " completed after " << MAX_ITERATIONS << " iterations." << std::endl;
+}
