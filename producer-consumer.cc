@@ -37,4 +37,13 @@ std::vector<int> reader1_history;
 std::vector<int> reader2_history;
 std::vector<int> reader3_history;
 
+// Initialize base vector with random values
+void initialize_vector() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(1, 10);
+    
+    std::lock_guard<std::mutex> lock(mtx);
+    std::generate(vector_base.begin(), vector_base.end(), [&]() { return dist(gen); });
+}
 
